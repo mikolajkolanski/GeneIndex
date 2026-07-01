@@ -1,0 +1,12 @@
+.venv/
+.vscode/
+data/
+datasets/
+__pycache__/
+*.log
+tensorboard_runs/
+
+# AE dataset is downloaded
+src/m0_ae/dataset
+
+*.pkl
