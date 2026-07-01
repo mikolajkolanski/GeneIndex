@@ -15,9 +15,8 @@ TEMP_PATH = Path('src/m0_ae/dataset/temp')
 OUT_PATH = Path('src/m0_ae/dataset/train_100k')
 
 PATCH_SIZE = 512
-STRIDE = 400
 
-def patchify(input_folder, h5_path, batch_size=100):
+def patchify(input_folder, h5_path, batch_size=100, pathes_per_scan=5):
     all_files = [os.path.join(input_folder, f) for f in os.listdir(input_folder) if f.endswith(('.jpg', '.png'))]
     
     with h5py.File(h5_path, 'w') as f:
@@ -36,22 +35,24 @@ def patchify(input_folder, h5_path, batch_size=100):
             img = Image.open(img_path).convert("RGB")
             img = img.resize((img.width // 2, img.height // 2))
             
-            for y in range(0, img.height - PATCH_SIZE, STRIDE):
-                for x in range(0, img.width - PATCH_SIZE, STRIDE):
-                    box = (x, y, x + PATCH_SIZE, y + PATCH_SIZE)
-                    patch = img.crop(box)
+            x_all = np.random.randint(0,img.width - PATCH_SIZE, size=(pathes_per_scan,))
+            y_all = np.random.randint(0,img.height - PATCH_SIZE, size=(pathes_per_scan,))
+
+            for x,y in zip(x_all, y_all):
+                box = (x, y, x + PATCH_SIZE, y + PATCH_SIZE)
+                patch = img.crop(box)
                     
-                    patch_np = np.array(patch).transpose(2, 0, 1)
-                    temp_batch.append(patch_np)
+                patch_np = np.array(patch).transpose(2, 0, 1)
+                temp_batch.append(patch_np)
                     
-                    if len(temp_batch) >= batch_size:
-                        arr_batch = np.array(temp_batch)
+                if len(temp_batch) >= batch_size:
+                    arr_batch = np.array(temp_batch)
                         
-                        dst.resize(total_saved + len(arr_batch), axis=0)
-                        dst[total_saved:] = arr_batch
+                    dst.resize(total_saved + len(arr_batch), axis=0)
+                    dst[total_saved:] = arr_batch
                         
-                        total_saved += len(arr_batch)
-                        temp_batch = []
+                    total_saved += len(arr_batch)
+                    temp_batch = []
                 
         if len(temp_batch) > 0:
             arr_batch = np.array(temp_batch)
@@ -65,8 +66,8 @@ def do_shard(gid):
     if not TEMP_PATH.exists():
         os.mkdir(TEMP_PATH)
 
-    download_group(str(TEMP_PATH), gid)
-    patchify(TEMP_PATH, OUT_PATH / f'gid{gid}.h5')
+    download_group(str(TEMP_PATH), gid, percentage=0.1)
+    patchify(TEMP_PATH, OUT_PATH / f'gid{gid}.h5', pathes_per_scan=5)
 
     shutil.rmtree(TEMP_PATH)
 
