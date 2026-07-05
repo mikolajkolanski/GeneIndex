@@ -33,8 +33,11 @@ def patchify(input_folder, h5_path, batch_size=100, pathes_per_scan=5):
         
         for i, img_path in tqdm(enumerate(all_files), total=len(all_files), desc='Patching images'):
             img = Image.open(img_path).convert("RGB")
-            img = img.resize((img.width // 2, img.height // 2))
+            img = img.resize((img.width // 4, img.height // 4))
             
+            if img.height < PATCH_SIZE or img.width < PATCH_SIZE:
+                continue
+
             x_all = np.random.randint(0,img.width - PATCH_SIZE, size=(pathes_per_scan,))
             y_all = np.random.randint(0,img.height - PATCH_SIZE, size=(pathes_per_scan,))
 
