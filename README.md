@@ -9,4 +9,4 @@ Using this tool you can easily index your genealogical scans without the need fo
 
 The goal of this project is to achieve over 95% accuracy on names and surnames recognition.
 
-![Project Overview](./Project%20Overview.drawio.png)
+![Project Overview](./Project%20Overview.drawio.svg)
