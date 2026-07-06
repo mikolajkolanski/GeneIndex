@@ -5,15 +5,15 @@ from PIL import Image
 import random
 from tqdm import tqdm
 
-import u2_image_row_splitter as u2_image_row_splitter
-from u2_image_row_splitter.images_fext_dino import DinoFeatureExtractor
+import u2_image_record_splitter_alg as u2_image_record_splitter_alg
+from u2_image_record_splitter_alg.images_fext_dino import DinoFeatureExtractor
 from u1_downloader import images_loader
 
 feature_ext = DinoFeatureExtractor()
 
 def do_shard(shard_id:int, df_raw,save_imgs=True):
     """Does full one shard pipeline"""
-    rows_list = u2_image_row_splitter.split_into_rows_batch(df_raw)
+    rows_list = u2_image_record_splitter_alg.split_into_rows_batch(df_raw)
     rows_df = pd.DataFrame(rows_list, columns=['image','source','page_side','row_idx'])
 
     height_outliers = np.array([img.height>400 for img in rows_df.image])

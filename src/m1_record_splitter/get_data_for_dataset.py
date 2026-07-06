@@ -37,4 +37,4 @@ if __name__ == '__main__':
     # print(f'{len(df)} images have correct resolution')
 
     # for sample in df.iterrows():
-    #     page1,page2 = u2_image_row_splitter.crop_and_split_pages(sample.image) 
+    #     page1,page2 = u2_image_record_splitter.crop_and_split_pages(sample.image) 
