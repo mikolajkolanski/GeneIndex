@@ -11,6 +11,22 @@ The goal of this project is to achieve over 95% accuracy on names and surnames r
 
 ![Project Overview](./Project%20Overview.drawio.svg)
 
+## ⏳ Progress
+
+- [x] Data downloader
+- [x] Autoencoder (AE)
+  - [x] Training dataset
+  - [x] Architecture implementation
+  - [ ] Model training
+- [ ] Record splitter
+  - [ ] Training dataset
+  - [ ] Architecture implementation
+  - [ ] Model training
+- [ ] HTR Model
+  - [ ] Training dataset
+  - [ ] Model selection
+  - [ ] Model fine-tuning
+
 ## 📜 Refereces
 
 1. Kaiming He, Xinlei Chen, Saining Xie, Yanghao Li, Piotr Dollár, Ross Girshick, 
