@@ -3,6 +3,8 @@ import math
 import torch
 from torch import nn
 
+from src.m0_ae.transformer import Block
+
 SCAN_WIDTH = 1920
 SCAN_HEIGHT = 1600
 
@@ -20,11 +22,22 @@ class MAEEncoder(nn.Module):
         self.posenc = nn.Parameter(torch.randn(1, d_model, image_size//patch_size, image_size//patch_size))
         self.posenc_interp = nn.Parameter(torch.randn(1, d_model, SCAN_HEIGHT//patch_size, SCAN_WIDTH//patch_size))
 
-        self.blocks = nn.TransformerEncoder(nn.TransformerEncoderLayer(
-            d_model, 8, 4*d_model,
-            norm_first=True, 
-            batch_first=True
-        ), num_layers=4)
+        self.blocks = nn.ModuleList([
+            Block(d_model, 8, 16),
+            Block(d_model, 8, 16),
+            Block(d_model, 8, 16),
+            Block(d_model, 8, 0),
+
+            Block(d_model, 8, 16),
+            Block(d_model, 8, 16),
+            Block(d_model, 8, 16),
+            Block(d_model, 8, 0),
+            
+            Block(d_model, 8, 16),
+            Block(d_model, 8, 16),
+            Block(d_model, 8, 16),
+            Block(d_model, 8, 0),
+        ])
 
         self.mask_token = nn.Parameter(torch.randn(1, 1, d_model))
     
@@ -50,7 +63,7 @@ class MAEEncoder(nn.Module):
         if x.size(-1) == 512:
             p_emb = p + self.posenc
         else:
-            assert x.size(-1) == 1920, 'scan must me of size 1920x1600'
+            assert x.size(-1) == 1920, f'scan must be of size 1920x1600, got {x.size()}'
             p_emb = p + self.posenc_interp
                                            
         p_emb = p_emb.flatten(-2).permute(0,2,1) # [N, 1024, d_model]
@@ -67,7 +80,9 @@ class MAEEncoder(nn.Module):
             index=idx_keep.unsqueeze(-1).expand(-1, -1, p_emb.size(-1))
         )
 
-        latent = self.blocks(p_emb) # [N, seqlen, d_model]
+        for b in self.blocks:
+            p_emb = b(p_emb, pnum_x, pnum_y) # [N, seqlen, d_model]
+        latent = p_emb
 
         latent = torch.cat([latent, 
                             self.mask_token.repeat(x.size(0), seqlen-latent.size(1), 1)],
