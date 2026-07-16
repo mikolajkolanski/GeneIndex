@@ -33,7 +33,8 @@ def patchify(input_folder, h5_path, batch_size=100, pathes_per_scan=5):
         
         for i, img_path in tqdm(enumerate(all_files), total=len(all_files), desc='Patching images'):
             img = Image.open(img_path).convert("RGB")
-            img = img.resize((img.width // 4, img.height // 4))
+            # img = img.resize((img.width // 4, img.height // 4))
+            img = img.resize((1920, 1600))
             
             if img.height < PATCH_SIZE or img.width < PATCH_SIZE:
                 continue
@@ -70,7 +71,7 @@ def do_shard(gid):
         os.mkdir(TEMP_PATH)
 
     download_group(str(TEMP_PATH), gid, percentage=0.1)
-    patchify(TEMP_PATH, OUT_PATH / f'gid{gid}.h5', pathes_per_scan=5)
+    patchify(TEMP_PATH, OUT_PATH / f'gid{gid}-19201600-2xsmaller-1pps.h5', pathes_per_scan=1)
 
     shutil.rmtree(TEMP_PATH)
 
