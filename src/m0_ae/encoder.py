@@ -49,7 +49,7 @@ class MAEEncoder(nn.Module):
                                                                     mode="bilinear"))
 
 
-    def forward(self, x, mask_perc=0.7):
+    def forward(self, x, mask_perc=0.7, return_mask=False):
         if not self.training:
             mask_perc = 0
 
@@ -66,8 +66,7 @@ class MAEEncoder(nn.Module):
             assert x.size(-1) == 1920, f'scan must be of size 1920x1600, got {x.size()}'
             p_emb = p + self.posenc_interp
                                            
-        p_emb = p_emb.flatten(-2).permute(0,2,1) # [N, 1024, d_model]
-
+        p_emb = p_emb.flatten(-2).permute(0,2,1) # [N, seqlem, d_model]
 
         rand = torch.rand(x.size(0), seqlen, device=x.device)
         shuffle_idx = rand.argsort(dim=1)
@@ -93,5 +92,16 @@ class MAEEncoder(nn.Module):
             dim=1,
             index=idx_restore.unsqueeze(-1).expand(-1, -1, latent.size(-1))
         )
-        lat_rest = lat_rest.permute(0, 2, 1).reshape(-1, self.d_model, pnum_x, pnum_y) # [N, 256, 32, 32]
-        return lat_rest # , idx_keep.reshape()
+        lat_rest = lat_rest.permute(0, 2, 1).reshape(-1, self.d_model, pnum_x, pnum_y) # [N, d_model, 32, 32]
+
+        img_mask = torch.ones(x.size(0), seqlen, device=x.device) # [N, seqlen]
+        img_mask.scatter_(1, idx_keep, 0)
+        img_mask = img_mask.reshape(-1, pnum_x, pnum_y) # [N, x, y]
+
+        img_mask = torch.repeat_interleave(img_mask, self.patch_size, dim=1)
+        img_mask = torch.repeat_interleave(img_mask, self.patch_size, dim=2) # [N, H, W]
+
+        if return_mask:
+            return lat_rest, img_mask
+        else:
+            return lat_rest

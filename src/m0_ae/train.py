@@ -48,39 +48,48 @@ def score_model(encoder, verbose=False):
 
     return t_nt
 
-ds = MultiH5Dataset(list(DS_PATH.glob('train_100k/*'))) 
-print('Dataset size', len(ds))
 
-enc = MAEEncoder(d_model=384, patch_size=16).to(DEVICE)
-dec = ConvDecoder(d_model=384, patch_size=16).to(DEVICE)
-print('Enc', sum([p.numel() for p in enc.parameters()]))
-print('Dec', sum([p.numel() for p in dec.parameters()]))
+def main():
+    ds = MultiH5Dataset(list(DS_PATH.glob('train_100k/*'))) 
+    print('Dataset size', len(ds))
 
-dl = torch.utils.data.DataLoader(ds, batch_size=8, shuffle=True)
+    enc = MAEEncoder(d_model=384, patch_size=16).to(DEVICE)
+    dec = ConvDecoder(d_model=384, patch_size=16).to(DEVICE)
+    print('Enc', sum([p.numel() for p in enc.parameters()]))
+    print('Dec', sum([p.numel() for p in dec.parameters()]))
 
-opt = torch.optim.AdamW(list(enc.parameters()) + list(dec.parameters()), lr=0.001, weight_decay=0.05)
-crit = nn.MSELoss()
+    dl = torch.utils.data.DataLoader(ds, batch_size=8, shuffle=True, num_workers=1, prefetch_factor=1)
 
-for epoch in range(50):
-    t = tqdm(dl, desc=f'Epoch {epoch+1}')
-    t_nt = 0
-    enc.train()
-    dec.train()
-    for z, x in enumerate(t):
-        x = x.to(DEVICE)
+    opt = torch.optim.AdamW(list(enc.parameters()) + list(dec.parameters()), lr=0.001, weight_decay=0.05)
+    crit = nn.MSELoss(reduction='none')
 
-        lat = enc(x, mask_perc=0.75)
-        pred = dec(lat)
+    for epoch in range(50):
+        t = tqdm(dl, desc=f'Epoch {epoch+1}')
+        t_nt = 0
+        enc.train()
+        dec.train()
+        for z, x in enumerate(t):
+            x = x.to(DEVICE)
 
-        loss = crit(x, pred)
+            lat, mask = enc(x, mask_perc=0.75, return_mask=True)
+            pred = dec(lat)
 
-        loss.backward()
-        opt.step()
-        opt.zero_grad()
+            # Masked loss (predict only masked patches)
+            loss_raw = crit(pred, x)
+            loss = (loss_raw * mask.float().unsqueeze(1)).sum() / mask.sum() / 3
 
-        t.set_postfix_str(f'Loss: {loss.item():.3f} TvsNT: {t_nt}')
+            loss = crit(x, pred)
 
-        if z%100 == 0:
-            t_nt = score_model(enc, verbose=False)
+            loss.backward()
+            opt.step()
+            opt.zero_grad()
 
-pkl.dump(enc, Path(f'src/m0_ae/{input('Model filename: ')}.pkl').open('wb'))
+            t.set_postfix_str(f'Loss: {loss.item():.3f} TvsNT: {t_nt}')
+
+            if z%100 == 0:
+                t_nt = score_model(enc, verbose=False)
+
+    pkl.dump(enc, Path(f'src/m0_ae/{input('Model filename: ')}.pkl').open('wb'))
+
+if __name__=='__main__':
+    main()
