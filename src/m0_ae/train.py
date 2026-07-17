@@ -58,7 +58,7 @@ def main():
     print('Enc', sum([p.numel() for p in enc.parameters()]))
     print('Dec', sum([p.numel() for p in dec.parameters()]))
 
-    dl = torch.utils.data.DataLoader(ds, batch_size=8, shuffle=True, num_workers=1, prefetch_factor=1)
+    dl = torch.utils.data.DataLoader(ds, batch_size=8, shuffle=True)
 
     opt = torch.optim.AdamW(list(enc.parameters()) + list(dec.parameters()), lr=0.001, weight_decay=0.05)
     crit = nn.MSELoss(reduction='none')
@@ -74,11 +74,11 @@ def main():
             lat, mask = enc(x, mask_perc=0.75, return_mask=True)
             pred = dec(lat)
 
+            loss = crit(x, pred)
+
             # Masked loss (predict only masked patches)
             loss_raw = crit(pred, x)
             loss = (loss_raw * mask.float().unsqueeze(1)).sum() / mask.sum() / 3
-
-            loss = crit(x, pred)
 
             loss.backward()
             opt.step()
