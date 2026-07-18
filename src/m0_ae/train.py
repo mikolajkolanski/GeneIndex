@@ -10,9 +10,9 @@ from pathlib import Path
 import pickle as pkl
 from torch.utils.tensorboard import SummaryWriter
 
-from src.m0_ae.dataset import MultiH5Dataset
-from src.m0_ae.encoder import MAEEncoder
-from src.m0_ae.decoder import ConvDecoder
+from .dataset import MultiH5Dataset
+from .encoder import MAEEncoder
+from .decoder import ConvDecoder
 
 DS_PATH = Path('src/m0_ae/dataset/')
 SCAN_WIDTH = 1920

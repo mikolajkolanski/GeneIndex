@@ -1,15 +1,17 @@
-from src.u1_downloader.images_downloader import download_group, get_all_gids
-import pandas as pd
+import os
 from pathlib import Path
-import matplotlib.pyplot as plt
-import torchvision.transforms.functional as F
+import shutil
+
+import numpy as np
+import pandas as pd
+import h5py
 from PIL import Image
 from tqdm import tqdm
+
 from torchvision.transforms import v2
-import h5py
-import numpy as np
-import shutil
-import os
+import torchvision.transforms.functional as F
+
+from src.u1_downloader.images_downloader import download_group, get_all_gids
 
 TEMP_PATH = Path('src/m0_ae/dataset/temp')
 OUT_PATH = Path('src/m0_ae/dataset/train_100k')
@@ -78,5 +80,5 @@ def do_shard(gid):
 if __name__=='__main__':
     gids = get_all_gids()
 
-    for gid in pd.Series(gids).sample(5):
+    for gid in pd.Series(gids).sample(100):
         do_shard(gid)

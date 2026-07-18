@@ -3,7 +3,7 @@ import math
 import torch
 from torch import nn
 
-from src.m0_ae.transformer import Block
+from .transformer import Block
 
 SCAN_WIDTH = 1920
 SCAN_HEIGHT = 1600
