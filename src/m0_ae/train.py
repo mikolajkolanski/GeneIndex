@@ -8,6 +8,7 @@ from PIL import Image
 from tqdm import tqdm
 from pathlib import Path
 import pickle as pkl
+from torch.utils.tensorboard import SummaryWriter
 
 from src.m0_ae.dataset import MultiH5Dataset
 from src.m0_ae.encoder import MAEEncoder
@@ -39,14 +40,15 @@ def score_model(encoder, verbose=False):
 
     csim = F.cosine_similarity(feats[:, 66:100, 20:80].mean(dim=(-1,-2)).unsqueeze(0), feats_flat, dim=1).reshape(W,H)
 
-    if verbose:
-        fig, ax = plt.subplots(1,2, figsize=(15,15))
-        ax[0].imshow(img_to_extract.permute(1,2,0))
-        ax[1].matshow(csim)
-        plt.show()
-    print(f'T_nt = {t_nt.item()}')
+    
+    fig, ax = plt.subplots(1,2, figsize=(12,6))
+    ax[0].imshow(img_to_extract.permute(1,2,0))
+    ax[1].matshow(csim)
 
-    return t_nt
+    if verbose:
+        plt.show()
+
+    return t_nt, fig
 
 
 def main():
@@ -58,9 +60,11 @@ def main():
     print('Enc', sum([p.numel() for p in enc.parameters()]))
     print('Dec', sum([p.numel() for p in dec.parameters()]))
 
+    tb_writer = SummaryWriter('tensorboard_runs/m0_ae/run1')
     dl = torch.utils.data.DataLoader(ds, batch_size=8, shuffle=True)
 
     opt = torch.optim.AdamW(list(enc.parameters()) + list(dec.parameters()), lr=0.001, weight_decay=0.05)
+    sch = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(opt,len(dl),T_mult=2)
     crit = nn.MSELoss(reduction='none')
 
     for epoch in range(50):
@@ -68,6 +72,8 @@ def main():
         t_nt = 0
         enc.train()
         dec.train()
+
+        avg_loss = 0
         for z, x in enumerate(t):
             x = x.to(DEVICE)
 
@@ -84,12 +90,32 @@ def main():
             opt.step()
             opt.zero_grad()
 
-            t.set_postfix_str(f'Loss: {loss.item():.3f} TvsNT: {t_nt}')
+            t.set_postfix_str(f'Loss: {loss.item():.3f}')
+            
+            sch.step()
 
-            if z%100 == 0:
-                t_nt = score_model(enc, verbose=False)
+            avg_loss += loss.item()
 
-    pkl.dump(enc, Path(f'src/m0_ae/{input('Model filename: ')}.pkl').open('wb'))
+        avg_loss /= len(dl)
+        t_nt, scan_fig = score_model(enc, verbose=False)
+
+        fig, ax = plt.subplots(1,3, figsize=(18,6))
+
+        ax[0].imshow(x[0].cpu().permute(1,2,0))
+        ax[1].imshow(pred[0].detach().cpu().permute(1,2,0))
+        ax[2].imshow(mask[0].unsqueeze(0).detach().cpu().permute(1,2,0))
+
+        tb_writer.add_scalar('Train loss', avg_loss, epoch)
+        tb_writer.add_scalar('T_nt', t_nt, epoch)
+
+        tb_writer.add_figure('Scan fig', scan_fig, global_step=epoch,close=True)
+        tb_writer.add_figure('Training fig', fig, global_step=epoch,close=True)
+
+        if epoch%10==0:
+            pkl.dump(enc, Path(f'src/m0_ae/trained_model_e{epoch}.pkl').open('wb'))
+
+
+    pkl.dump(enc, Path(f'src/m0_ae/trained_model.pkl').open('wb'))
 
 if __name__=='__main__':
     main()
