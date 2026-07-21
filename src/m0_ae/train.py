@@ -52,6 +52,8 @@ def score_model(encoder, verbose=False):
 
 
 def main():
+    run_id = int(input('Enter run id: '))
+
     ds = MultiH5Dataset(list(DS_PATH.glob('train_100k/*'))) 
     print('Dataset size', len(ds))
 
@@ -60,7 +62,7 @@ def main():
     print('Enc', sum([p.numel() for p in enc.parameters()]))
     print('Dec', sum([p.numel() for p in dec.parameters()]))
 
-    tb_writer = SummaryWriter('tensorboard_runs/m0_ae/run1')
+    tb_writer = SummaryWriter(f'tensorboard_runs/m0_ae/run{run_id}')
     dl = torch.utils.data.DataLoader(ds, batch_size=8, shuffle=True)
 
     opt = torch.optim.AdamW(list(enc.parameters()) + list(dec.parameters()), lr=0.001, weight_decay=0.05)
@@ -107,15 +109,16 @@ def main():
 
         tb_writer.add_scalar('Train loss', avg_loss, epoch)
         tb_writer.add_scalar('T_nt', t_nt, epoch)
+        tb_writer.add_scalar('Learning rate', sch.get_last_lr()[0], epoch)
 
         tb_writer.add_figure('Scan fig', scan_fig, global_step=epoch,close=True)
         tb_writer.add_figure('Training fig', fig, global_step=epoch,close=True)
 
         if epoch%10==0:
-            pkl.dump(enc, Path(f'src/m0_ae/trained_model_e{epoch}.pkl').open('wb'))
+            pkl.dump(enc, Path(f'src/m0_ae/run{run_id}_trained_model_e{epoch}.pkl').open('wb'))
 
 
-    pkl.dump(enc, Path(f'src/m0_ae/trained_model.pkl').open('wb'))
+    pkl.dump(enc, Path(f'src/m0_ae/run{run_id}_trained_model_e{epoch}.pkl').open('wb'))
 
 if __name__=='__main__':
     main()
