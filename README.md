@@ -26,13 +26,13 @@ Even state-of-the-art multimodal LLMs fail to produce reliable, structured outpu
 ## ⏳ Progress
 
 - [x] Data downloader
-- [ ] Autoencoder (AE)
+- [x] Autoencoder (AE)
   - [x] Training dataset
   - [x] Architecture implementation
-  - [ ] Model training
+  - [x] Model training
 - [ ] Record splitter (RS)
-  - [ ] Training dataset
-  - [ ] Architecture implementation
+  - [x] Training dataset
+  - [x] Architecture implementation
   - [ ] Model training
 - [ ] Match labels to record
   - [ ] Extract year and record numbers
