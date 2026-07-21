@@ -10,3 +10,4 @@ tensorboard_runs/
 src/m0_ae/dataset
 
 *.pkl
+*.safetensors
