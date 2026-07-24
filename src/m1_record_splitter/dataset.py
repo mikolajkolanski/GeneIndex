@@ -51,6 +51,9 @@ class ScanDataset(Dataset):
         
 
     def __getitem__(self,idx):
+        if idx>=self.len:
+            raise IndexError
+        
         img = Image.open(self.image_paths[idx])
         img.load()
         iw,ih = img.size
