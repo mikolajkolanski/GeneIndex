@@ -1,10 +1,13 @@
 import json
 from pathlib import Path
+from copy import deepcopy
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 import torch
+import torch.nn.functional as F
+from torchvision import tv_tensors
 
 def read_labels(images_path:Path, labels_file_path:Path|None=None):
     if labels_file_path is None:
@@ -100,3 +103,30 @@ def filter_rcnn_targets(targets, min_size=1.0):
         filtered_targets.append(filtered_target)
         
     return filtered_targets
+
+def feats_to_img(feats):
+    Fdim, W, H = feats.shape
+    feats_flat = feats.permute(1,2,0).reshape(-1, Fdim)
+    csim = F.cosine_similarity(feats[:, 66:100, 20:80].mean(dim=(-1,-2)).unsqueeze(0), feats_flat, dim=1).reshape(1,W,H)
+
+    return csim
+
+def scale_targs(targs, factor, inplace=False):
+    if not inplace:
+        targs = deepcopy(targs)
+
+    if not isinstance(targs, list):
+        targs['boxes'] *= factor
+        return targs
+    else:
+        for i in range(len(targs)):
+            targs[i]['boxes'] *= factor
+        return targs
+
+
+def targs_to_bboxes(targs: list[dict], canvas_size):
+    return [{'boxes': tv_tensors.BoundingBoxes(targs[i]['boxes'], format='XYXY', canvas_size=canvas_size),
+            'labels': targs[i]['labels']}
+            for i in range(len(targs))]
+        
+
